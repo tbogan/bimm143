@@ -1,0 +1,270 @@
+---
+title: 'Class-9: Hands on Session - Breast Cancer Analysis'
+author: "Tyler Bogan"
+date: "April 30, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+First, we need data to input:
+```{r}
+wisc.df <- read.csv("WisconsinCancer.csv")
+```
+
+Next, we will convert it to matrix:
+```{r}
+wisc.data <- as.matrix(wisc.df[,3:32])
+```
+
+# Set the row names of wisc.data
+```{r}
+row.names(wisc.data) <- wisc.df$id
+```
+
+# Create diagnosis vector by completing the missing code. 1 = cancer, 0 = no cancer
+```{r}
+diagnosis <- as.numeric(wisc.df$diagnosis == "M")
+```
+
+Convert
+Q1. How many observations are in this dataset?
+```{r}
+nrow(wisc.df)
+```
+
+
+Q2. How many variables/features in the data are suffixed with _mean?
+
+```{r}
+#You see there are a lot of 'means'
+colnames(wisc.data)
+
+#grep fxn searches column names. This spits out the columns which end in _mean
+grep("_mean", colnames(wisc.data))
+
+#find the number of these total to answer our question
+length(grep("_mean", colnames(wisc.data)))
+```
+
+Q3. How many of the observations have a malignant diagnosis
+```{r}
+table(wisc.df$diagnosis)
+```
+
+```{r}
+round(apply(wisc.data,2,sd))
+```
+
+##Next, we are conducting  **Principal Component Analysis (PCA)**
+
+Check the mean and standard deviation of the features (i.e. columns) of the wisc.data to determine if the data should be scaled. Use the colMeans() and apply() functions like you’ve done before.
+
+```{r}
+# Check column means and standard deviations
+colMeans(wisc.data)
+
+apply(wisc.data,2,sd)
+
+```
+
+# Perform PCA on wisc.data by completing the following code
+```{r}
+wisc.pr <- prcomp(wisc.data, scale=TRUE)
+```
+
+#Look at the summary of the results:
+```{r}
+summary(wisc.pr)
+```
+
+#Q4. From your results, what proportion of the original variance is captured by the first principal components (PC1)? ANSWER = 44.27
+
+#Q5. How many principal components (PCs) are required to describe at least 70% of the original variance in the data? Need first 3 to get over 70% (in this case 72.6%)
+
+#Q6. How many principal components (PCs) are required to describe at least 90% of the original variance in the data? Need first 7 to get over 90% (in this case 91.0%)
+
+#Looking at **biplot()** - a function not recommended by Dr. Grant.
+```{r}
+biplot(wisc.pr)
+```
+
+# Let's try a bdetter one! Scatter plot observations by components 1 and 2
+```{r}
+
+plot(wisc.pr$x[,1], wisc.pr$x[,2], col = (diagnosis + 1), 
+     xlab = "PC1", ylab = "PC3")
+```
+
+Q8. Generate a similar plot for principal components 1 and 3. What do you notice about these plots? I noticed that the variation for 
+
+Overall, the plots indicate that principal component 1 is capturing a separation of malignant from benign samples. This is an important and interesting result worthy of further exploration - as we will do in the next sections!
+
+```{r}
+
+plot(wisc.pr$x[,1], wisc.pr$x[,3], col = (diagnosis + 1), 
+     xlab = "PC1", ylab = "PC3")
+```
+
+##Variance Explained
+
+Calculate the variance of each principal component by squaring the sdev component of wisc.pr (i.e. wisc.pr$sdev^2). Save the result as an object called pr.var
+
+```{r}
+pr.var <- wisc.pr$sdev^2
+head(pr.var)
+```
+
+Calculate the variance explained by each principal component by dividing by the total variance explained of all principal components. Assign this to a variable called pve and create a plot of variance explained for each principal component.
+```{r}
+pve <- (pr.var / sum(pr.var)) * 100
+```
+
+Plot variance explained for each principal component
+```{r}
+plot(pve, xlab = "Principal Component", 
+     ylab = "Proportion of Variance Explained", 
+     ylim = c(0, 100), type = "o")
+```
+
+# Alternative scree plot of the same data, note data driven y-axis
+```{r}
+barplot(pve, ylab = "Precent of Variance Explained",
+     names.arg=paste0("PC",1:length(pve)), las=2, axes = FALSE)
+axis(2, at=pve, labels=round(pve,2)*100 )
+```
+
+# Plot cumulative proportion of variance explained
+```{r}
+plot(cumsum(pve), xlab = "Principal Component", 
+     ylab = "Cumulative Proportion of Variance Explained", 
+     ylim = c(0, 100), type = "o")
+```
+
+Use the par() function to create a side by side plot (i.e. 1 row 2 column arrangement) of these two graphs.
+```{r}
+par(mfcol=c(1,2))
+
+plot(pve, xlab = "Principal Component", 
+     ylab = "Proportion of Variance Explained", 
+     ylim = c(0, 100), type = "o")
+
+plot(cumsum(pve), xlab = "Principal Component", 
+     ylab = "Cumulative Proportion of Variance Explained", 
+     ylim = c(0, 100), type = "o")
+```
+
+## ggplot based graph
+#install.packages("factoextra")
+
+This is already done on my machine, but here's the code for reference:
+install.packages("factoextra")
+
+
+
+```{r}
+library(factoextra)
+fviz_eig(wisc.pr, addlabels = TRUE)
+```
+
+##Note - you need to go back and answer these questions
+
+Q9. For the first principal component, what is the component of the loading vector (i.e. wisc.pr$rotation[,1]) for the feature concave.points_mean?
+
+Q10. What is the minimum number of principal components required to explain 80% of the variance of the data?
+
+
+##Hierarchical Clustering
+
+# Scale the wisc.data data: data.scaled
+```{r}
+data.scaled <- scale(wisc.data)
+```
+
+Calculate the (Euclidean) distances between all pairs of observations in the new scaled dataset and assign the result to data.dist
+```{r}
+data.dist <- dist(data.scaled)
+
+```
+
+Create a hierarchical clustering model using complete linkage. Manually specify the method argument to hclust() and assign the results to wisc.hclust.
+```{r}
+wisc.hclust <- hclust(data.dist, method = "complete")
+```
+
+Q11. Using the plot() and abline() functions, what is the height at which the clustering model has 4 clusters? We assigned it 19.
+```{r}
+plot(wisc.hclust)
+
+abline(h=19, col="red", lty=2)
+```
+  
+##Note - we are skipping the section on K-means (section 4)
+
+##**Section 5** Combining Methods:
+
+Using the minimum number of principal components required to describe at least 90% of the variability in the data, create a hierarchical clustering model with the linkage method="ward.D2". We use Ward’s criterion here because it is based on multidimensional variance like principal components analysis. Assign the results to wisc.pr.hclust.
+
+```{r}
+#This is the hierarchical clustering of my first 7 principal components, which together gathered just over 90% of the variance.
+wisc.pca.hclust <- hclust(dist(wisc.pr$x[,1:7]), method = "ward.D2")
+```
+
+Graph it
+```{r}
+plot(wisc.pca.hclust)
+```
+
+Modify that graph
+```{r}
+grps <- cutree(wisc.pca.hclust, k=2)
+table(grps)
+```
+
+Now make a comparision. We see 188 group 1 has cancer, and 24 of group 2 has cancer.
+```{r}
+table(grps, diagnosis)
+```
+
+Let's plot those PCA results again
+```{r}
+plot(wisc.pr$x[,1:2], col=grps)
+```
+
+```{r}
+plot(wisc.pr$x[,1:2], col=diagnosis+1)
+```
+
+Skipping the 3d image and the Sensitivity / Specificity section
+
+##Prediction
+We will use the predict() function that will take our PCA model from before and new cancer cell data and project that data onto our PCA space.
+```{r}
+url <- "https://tinyurl.com/new-samples-CSV"
+new <- read.csv(url)
+npc <- predict(wisc.pr, newdata=new)
+npc
+```
+
+Plot
+```{r}
+plot(wisc.pr$x[,1:2], col=grps)
+points(npc[,1], npc[,2], col="blue", pch=16)
+```
+
+Q17. Which of these new patients should we prioritize for follow up based on your results?
+We would care about the patient who is in the black range (as we have defined that as group one which is where most of our cancer patients are)
+
+3D View
+Make sure you have installed rgl
+```{r}
+plot3d(wisc.pr$x[,1:3], xlab="PC 1", ylab="PC 2", zlab="PC 3", cex=1.5, size=1, type="s", col=diagnosis+1)
+```
+
+
+```{r}
+sessionInfo()
+```
+

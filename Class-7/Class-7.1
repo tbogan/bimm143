@@ -1,0 +1,154 @@
+---
+title: "Class-7.1"
+author: "Tyler Bogan"
+date: "April 23, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Pulling functions from a URL
+```{r}
+source("http://tinyurl.com/rescale-R")
+```
+
+#Try out last day's rescale() function
+
+```{r}
+rescale(1:10)
+```
+
+```{r}
+rescale2(c(1:10, "string"))
+```
+
+##Defining a function to show positions are missing (NA) values in two vectors
+```{r}
+x <- c( 1, 2, NA, 3, NA)
+y <- c(NA, 3, NA, 3, 4)
+
+is.na(y)
+```
+
+##Try just combining them
+```{r}
+is.na(x) & is.na(y)
+```
+
+#Next, how to count them (recall TRUE = 1):
+```{r}
+sum(is.na(x) & is.na(y))
+```
+
+##Now, we can write this as our first function
+```{r}
+both_na <- function(x,y) {
+  sum(is.na(x) & is.na(y))
+}
+```
+
+```{r}
+both_na(x, c(NA, 3, NA, 2, NA) )
+```
+
+Testing 1-2-3
+```{r}
+x <- c(NA,NA,NA)
+y1 <- c(1, NA, NA)
+y2 <- c(1, NA, NA, NA)
+```
+
+```{r}
+y3 <- c(1, NA, NA, NA, NA, NA, NA)
+both_na(x, y3)
+```
+
+##We don't want the function to repeat values of shorter vector. We want to stop the code when we determine they are different lengths.
+```{r}
+both_na2 <- function(x,y) {
+  if(length(x) != length(y)) {
+    stop("Input x and y should be the same length")
+  }
+  sum(is.na(x) & is.na(y))
+}
+```
+
+```{r}
+both_na2(x, y3)
+```
+
+Using the which function
+```{r}
+which( (c(F,F,T,F,T)))
+```
+
+Try using both_na3, which has been predefined in our source code above
+```{r}
+both_na3(x, y1)
+```
+
+##Comparing gene expression using Intersect function using data pre-defined in our source - first, convert data frame to vector
+```{r}
+x <- df1$IDs
+y <- df2$IDs
+
+intersect(x, y)
+```
+
+#That works, but not giving us all of the information we need. Instead, we use indices to clarify
+```{r}
+x[x %in% y]
+```
+
+#Going a little further
+```{r}
+gene_intersect <- function(x, y) {
+  cbind( x[x %in% y], y[y %in% x])
+}
+
+gene_intersect(df1$IDs, df2$IDs)
+```
+
+```{r}
+gene_intersect2(df1, df2)
+```
+
+```{r}
+gene_intersect3(df1, df2)
+```
+
+## This fucntion works, but the code is not very readable to humans. We will attept to clean it up a little bit
+```{r}
+gene_intersect4(df1,df2)
+```
+
+```{r}
+gene_intersect4(df1, df3)
+```
+
+```{r}
+merge(df1, df2, by="IDs")
+```
+
+## Exploring the 'Extract Function' utility further. Grades from two students. We want to drop their lowest score & then calculate the average
+```{r}
+student_1 <- c(100, 100, 100, 100, 100, 100, 100, 90)
+student_2 <- c(100, 90, 90, 90, 90, 90, 97, 80)
+
+gradecalc <- function(x) {
+  (sum(x) - min(x)) / (length(x) - 1)
+}
+
+gradecalc(student_1)
+
+gradecalc(student_2)
+```
+

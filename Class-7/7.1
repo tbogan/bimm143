@@ -1,0 +1,55 @@
+---
+title: "Class-7"
+author: "Tyler Bogan"
+date: "April 23, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Pulling functions from a URL
+```{r}
+source("http://tinyurl.com/rescale-R")
+```
+
+#Try out last day's rescale() function
+
+```{r}
+rescale(1:10)
+```
+
+```{r}
+rescale2(c(1:10, "string"))
+```
+
+##Defining a function to show positions are missing (NA) values in two vectors
+```{r}
+x <- c( 1, 2, NA, 3, NA)
+y <- c(NA, 3, NA, 3, 4)
+
+is.na(y)
+```
+
+##Try just combining them
+```{r}
+is.na(x) & is.na(y)
+```
+
+#Next, how to count them (recall TRUE = 1):
+```{r}
+sum(is.na(x) & is.na(y))
+```
+
+##Now, we can write this as our first function
+```{r}
+both_na <- function(x,y) {
+  sum(is.na(x) & is.na(y))
+}
+```
+
+```{r}
+both_na(x, c(NA, 3, NA, 2, NA) )
+```
+
