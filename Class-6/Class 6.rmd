@@ -2,14 +2,12 @@
 title: 'Class 6: R Functions'
 author: "Tyler Bogan"
 date: "April 18, 2019"
-output:
-  html_document:
-    df_print: paged
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
+``` 
 
 
 ## About
