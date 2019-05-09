@@ -1,0 +1,118 @@
+---
+title: "Class 12: Targeted Drug Design"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Set up for Docking
+
+We will first prepare our HIV-Pr system for drug docking by making a protein only PDB file.
+
+```{r}
+library(bio3d)
+file <- get.pdb("1hsg")
+```
+
+We did this because later we will be comparing a file we generate to the original.
+
+```{r}
+pdb <- read.pdb(file)
+pdb
+```
+
+
+```{r}
+lig <- atom.select(pdb, "ligand", value=TRUE)
+write.pdb(lig, file="1hsg_ligand.pdb")
+lig
+```
+
+```{r}
+prot <- atom.select(pdb, "protein", value=TRUE)
+write.pdb(prot, file="1hsg_protein.pdb")
+prot
+```
+
+##We created two files in AutoDockTools which added hydrogens & then output our ligand and protein files with charges and atom type listed in the right 2 columns. 
+
+#Note - Fiddle with the dials and see how you can enclose regions of the protein.
+In this instance we will use a Spacing (angstrom) of 1Å (this is essentially a scaling factor). So
+set this dial to 1.000. So that we all get consistent results, let us set the (x, y, z) center as (16,
+25, 4) and the number of points in (x, y, z)-dimension as (30, 30, 30). Make a note of these
+values. We will need it later. 
+
+#Creating a configuration file:
+
+Created a configuration template - config.txt and saved it in RStudio. This file will tell our docking program which is ligand and which is receptor. This will generate 50 answers and store our ouptut as all.pdgt
+
+receptor = 1hsg_protein.pdbqt
+ligand = ligand.pdbqt
+
+num_modes = 50
+
+out = all.pdbqt
+
+center_x = 16
+center_y = 25
+center_z = 4
+
+size_x = 30
+size_y = 30
+size_z = 30
+
+seed = 2009
+
+##Section 2: Docking ligands into HIV-1 protease
+For this section, we will use the program called Autodock Vina [4]. Autodock Vina is a fast
+docking program that requires minimal user intervention and is often employed for highthroughput virtual screening. We will run it from the command line.
+
+We installed this, and then ran the following command in the terminal
+"\Program Files (x86)\The Scripps Research Institute\Vina\vina.exe" --config config.txt --log log.txt
+
+nce the run is complete, you should have two new files all.pdbqt, which contains all the
+docked modes, and log.txt, which contains a table of calculated affinities based on AutoDock
+Vina's scoring function [4]. The best docked mode, according to AutoDock Vina, is the first entry
+in all.pdbqt.
+
+2.3 Inspecting your docking results
+In order to visualize the docks and compare to the crystal conformation of the ligand we will
+process the all.pdbqt to a PDB format file that can be loaded into VMD. To do this we will use R
+and the Bio3D package. 
+
+```{r}
+library(bio3d)
+
+res <- read.pdb("all.pdbqt", multi=TRUE)
+
+write.pdb(res, "results.pdb")
+
+```
+
+Next,w e loaded both results.pdb AND original protease pdb (1hsg.pdb) into VMD and looked.
+>Q4: Qualitatively, how good are the docks? Is the crystal binding mode reproduced? Is it the
+best conformation according to AutoDock Vina?
+
+It does certainly appear that our results fit within the active site! They seem to fit better in the order they were lsited by ADT. 
+
+Next, we will actually quantify the fit of our results by calculating the **RMSD** (root mean square distance) between our known ligand and our results using "res" created above and ori created below.
+
+
+
+```{r}
+# res <- read.pdb("all.pdbqt", multi=TRUE)
+
+ori <- read.pdb("1hsg_ligand.pdbqt")
+
+rmsd(ori, res)
+
+```
+
+>Q5: Quantitatively how good are the docks? Is the crystal binding mode reproduced within 1Å RMSD for all atoms? 
+Only the first one is within 1 A RMSD. This is a really good fit compared to the others.
+
+
+
+
