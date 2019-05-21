@@ -1,0 +1,327 @@
+---
+title: "Class-14: Transcriptomics"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Let's first store our data in vectors
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", stringsAsFactors = FALSE, row.names = 1)
+
+metadata <-  read.csv("airway_metadata.csv", stringsAsFactors = FALSE)
+
+head(counts)
+
+head(metadata)
+```
+
+>How many?
+
+```{r}
+nrow(counts)
+```
+
+Quality control
+
+```{r}
+colnames(counts)
+```
+
+
+wE NOICE THERE'S A SLIGHT DISCREPANCY
+```{r}
+metadata$id
+```
+
+To have R do this for me in the future
+```{r}
+
+all( colnames(counts) == metadata$id )
+
+```
+
+We did this because this will be required when we use DEseq later!
+
+##Section 3: Toy differential gene expression
+#This section is a walk through of gene expression analysis
+
+Lets perform some exploratory differential gene expression analysis. Note: this analysis is for demonstration only. NEVER do differential expression analysis this way!
+
+Our metadata file tells us which columns of the countData are drug treated and control (i.e. non-drug)
+Look at the metadata object again to see which samples are control and which are drug treated.
+
+```{r}
+control.inds <- metadata$dex == "control"
+
+control <- metadata[control.inds,]
+
+control
+```
+
+
+```{r}
+head(counts[, control$id])
+```
+
+```{r}
+control.mean <- rowSums(counts[,control$id]) / 4
+```
+
+>Q1. How would you make the above code more robust? What would happen if you were to add more samples. Would the values obtained with the excat code above be correct?
+
+When calculating the mean, I would divide by ncol(metadata) so that it would be applicable even in a study with more samples. Sometimes we might ahve more than 4 samples in our data, and this code as currently written would have to be modified. HOwever, if we used ncol - it would be a simple copy/paste job.
+
+A better code would be as follows
+```{r}
+control.mean <- rowSums(counts[,control$id]) / length(control$id)
+```
+
+
+>Q2. Follow the same procedure for the treated samples (i.e. calculate the mean per gene accross drug treated samples and assign to a labeled vector called  treated.mean)
+
+```{r}
+treated.inds <- metadata$dex == "treated"
+
+treated <- metadata[treated.inds,]
+
+treated.mean <- rowSums(counts[,treated$id]) / length(treated$id)
+
+head(treated.mean)
+```
+
+Let's store the control.mean and treated.mean together for ease of use:
+```{r}
+meancounts <- data.frame(control.mean, treated.mean)
+```
+
+LEt's do a little data analysis to compare our treated and cotnrol means!
+
+What is the sum counts across al genes in control and treated?
+```{r}
+colSums(meancounts)
+```
+
+If the drug did absolutely nothing, these means should be the same. If we plotted the treated vs. the control. It should be a straight line w/ m=1.
+```{r}
+plot(meancounts)
+```
+
+Note, there's tremendous overlap within the small exprewssion zone of both genes. Dr. Grant suggests we make this a log scale.
+```{r}
+plot(meancounts, log = "xy")
+```
+
+Now we see quite a more substantial spread, so the drug might actually be doing something after all!
+
+Now, we will add a column to our meancounts chart. Note taht negative values mean that expression is higher in the mean than in the control. 
+```{r}
+meancounts$log2fc <- log2(meancounts[,"treated.mean"]/meancounts[,"control.mean"])
+
+head(meancounts)
+```
+
+Also, 'NaN' shows whenever one of our genes had 0 expression level. We're goign to remove genes that had zero expresion level. 
+
+We will look for 0 values in the first 2 columns and then try to filter them out. Wha the array.ind argument does is give us mroe than a simple vector output.
+
+```{r}
+head( which(meancounts[,1:2] == 0, arr.ind=TRUE))
+```
+
+We want to remove any row that has either value with 0. We will use unique fxn because some rows will have both with 0.
+
+```{r}
+to.rm <-unique(which( meancounts[,1:2] ==0, arr.ind=TRUE)[,1])
+```
+
+
+Let's count how many genes we have left after we filter out those ones we removed with 0 expression.
+```{r}
+mycounts<-meancounts[-to.rm,]
+
+nrow(mycounts)
+```
+
+How many genes are upregulated in the drug treatment cells? NOte this outputs a True/False vector. If we sum it, we'll get the number of genes that are upregulated!
+```{r}
+up.inds <- mycounts$log2fc > 2
+
+sum(up.inds)
+```
+
+Let's do the same to find out how many genes are downregulated!
+```{r}
+down.inds <- mycounts$log2fc < -2
+
+sum(down.inds)
+```
+
+
+Let's look at some of our upregulated genes
+```{r}
+head( mycounts[up.inds,] )
+```
+
+##Section 4: Annotations
+
+We are going to add some annotations to our current data here in this work book so that we can add real world context to what we have in R.
+
+We can add annotation from a supplied CSV file, such as those available from ENSEMBLE or UCSC. The annotables_grch38.csv annotation table links the unambiguous Ensembl gene ID to other useful annotation like the gene symbol, full gene name, location, Entrez gene ID, etc.
+
+```{r}
+anno <- read.csv("annotables_grch38.csv")
+
+head(anno)
+```
+
+
+Use the **merge()** function to add annotation data from `anno` object to our RNA-Seq results in `mycounts`
+```{r}
+mycounts.anno <- merge(mycounts, anno, by.x = "row.names", by.y = "ensgene")
+
+head( mycounts.anno )
+```
+
+Now, we have a table of all our data with some useful known information about every single gene that was upregulated or downregulated!
+
+Let's try to use one of our Bioconductor items to do the same thing and save ourselves several steps!
+
+Note, I had to use bioclite for one of these pacakges
+
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+```
+
+
+```{r}
+columns(org.Hs.eg.db)
+```
+
+Utilizing the mapIds fxn
+
+We will use the **mapIds()** function from bioconductor to add annotation data to our results. 
+```{r}
+mycounts$symbol <- mapIds(org.Hs.eg.db, 
+       keys=row.names(mycounts), 
+       keytype = "ENSEMBL", 
+       column="SYMBOL")
+
+head(mycounts)
+```
+
+Use this **mapID()** to add ENTREZ data 
+
+```{r}
+mycounts$entrez <- mapIds(org.Hs.eg.db,
+                           keys=row.names(mycounts), #The gene names in our dataset
+                           keytype = "ENSEMBL", #Format of our new gene names
+                           column="ENTREZID") #What new data we want to add
+```
+
+##SEction 5. Use DESeq2
+
+```{r}
+library("DESeq2")
+```
+
+need to re in put data to make this work:
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", stringsAsFactors = FALSE)
+
+metadata <-  read.csv("airway_metadata.csv", stringsAsFactors = FALSE)
+```
+
+Set up the object needed for DESeq analysis. 
+```{r}
+dds <- DESeqDataSetFromMatrix(countData=counts, 
+                              colData=metadata, 
+                              design=~dex, 
+                              tidy=TRUE)
+
+dds
+```
+
+
+
+```{r}
+dds<- DESeq(dds)
+```
+
+
+```{r}
+res <- results(dds)
+
+summary(res)
+```
+
+Those criteria are pretty loo9se. Let's try to get a p-value < .05 so taht we have greater confidence in our conclusion.
+
+```{r}
+res05 <- results(dds, alpha=0.05)
+
+summary(res05)
+```
+
+Let's order these genes by their p-value:
+
+We will find values with P less than .01 and then organize them by their p value and then write them out with the **write.csv()** function.
+```{r}
+res01 <- as.data.frame( results(dds, alpha=0.01) )
+
+head(res01)
+```
+
+Exploring the sort fxn
+```{r}
+x <- c(5,4,1,2)
+
+sort(x)
+
+x[order(x)] #Sorts our inputs for us. 
+```
+
+
+
+Now, let's sort our data by the p adjusted value.
+
+
+```{r}
+ord <- order( res01$padj )
+#View(res01[ord,])
+head(res01[ord,])
+```
+
+Now, let's put this in a csv file
+```{r}
+ord.inds <- order(res01$padj)
+
+write.csv( res01[ord.inds, ], file="signif01_results.csv")
+```
+
+Now let's make a figure that could summarize all of our individual results which we have a ton of. One of them that we would like to consider is a volcano plot. 
+
+First we will make our volcano plot. 
+
+```{r}
+plot(res01$log2FoldChange, -log(res01$padj) )
+```
+
+```{r}
+
+mycols <- rep("Gray", nrow(res01) )
+mycols[ res01$padj < 0.01 ] <- "Black"
+mycols[ res01$log2FoldChange >2 ] <- "Blue"
+
+mycols[(res01$padj < 0.01) & abs(res01$log2FoldChange > 2 )] <- "Red"
+
+plot(res01$log2FoldChange, 
+     -log(res01$padj), 
+     xlab = "Fold Change Drug/Control", 
+     ylab="-log (P-value)", 
+     col = mycols)
+```

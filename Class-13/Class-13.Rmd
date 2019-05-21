@@ -1,0 +1,134 @@
+---
+title: "Class-13: Genomics I"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+>1. What are the four candidate SNP’s?
+rs12936231, rs8067378, rs9303277, and rs7216389
+
+>2. What 3 genes do these variants affect or overlap?
+IKZF3, GSDMB, ZPBP2
+
+>3. Chromosome 17:39895095 (forward strand)|VCF:17  39895095  rs8067378  A  G
+A/G|Ancestral: G|MAF: 0.43 (G)|Highest population MAF: 0.50
+
+>4. 
+
+>5: What proportion of the Mexican Ancestry in Los Angeles sample population (MXL) are homozygous for the asthma associated SNP (G|G)?
+
+
+
+=======
+
+We have been discussing childhood asthma. We know that childhood asthma is especially common among children of Mexican descent in Los Angeles. we downloaded some data about them that we want to assess now.
+
+```{r}
+mxl <-read.csv("373531-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv")
+
+mxl
+```
+
+
+How many of each genotype are there?
+```{r}
+table(mxl$Genotype..forward.strand.)
+```
+
+What is the proportion of total for each genotype?
+```{r}
+(table(mxl$Genotype..forward.strand.) / nrow(mxl)) * 100
+```
+
+>Q6. Back on the ENSEMBLE page, search for the particular sample HG00109. This is a
+male from the GBR population group. What is the genotype for this sample? 
+
+On the Ensembl page for rs8067378 - we just use the 'Search for a sample' feature?
+Ans: We can see that he is homozygous G|G
+
+
+**Section 2: Initial RNA-Seq analysis**
+Now, you want to understand whether the SNP will affect gene expression. You can find
+the raw RNA-Seq data of this one sample on the class webpage:
+
+https://bioboot.github.io/bimm143_F18/class-material/HG00109_1.fastq
+https://bioboot.github.io/bimm143_F18/class-material/HG00109_2.fastq
+
+Download and examine these files with your favorite UNIX utilities such as head, tail
+and less. You can use your RStudio Terminal tab to issue these commands. 
+
+##Quality Scores in FASTQ files
+
+The fourth line of a FASTQ sequence format file encodes the quality score that tells us how good the sequence at a gien position is (i.e. how likely it is to be correct based on the inustrument).
+
+```{r}
+library(seqinr)
+library(gtools)
+phred <- asc( s2c("DDDDCDEDCDDDDBBDDDCC@") ) - 33
+phred 
+```
+
+Now, we will use the Galaxy tool to do further analysis. Galaxy is a remote front end to a ton of Unix tools that lets us do different types of analysis.
+
+Steps in Galaxy
+1. Upload our files
+2. Conduct a quality analysis. We will do this by running a program called 'fastqc' and using "read quality reports."
+
+
+##After completing the QC (via Fast QC), our next step is mapping!
+
+##After mapping, next is counting (via Cufflinks)
+
+**Section 4: Population Scale Analytics**
+>Q14: Read this file into R and determine the sample size for each genotype and their
+corresponding median expression levels for each of these genotypes. Hint: The
+read.table(), summary() and boxplot() functions will likely be useful here. There is an
+example R script online to be used ONLY if you are struggling in vein. Note that you
+can find the medium value from saving the output of the boxplot() function to an R
+object and examining this object. There is also the medium() and summary() function
+that you can use to check your understanding.
+
+```{r}
+pop <- read.table("rs8067378_ENSG00000172057.6.txt", row.names=1)
+
+pop
+```
+
+```{r}
+table(pop$geno)
+```
+
+```{r}
+table(pop$geno) / nrow(pop)
+```
+
+##Actual work
+
+Finding median expression for G/G:
+```{r}
+indsGG <- pop$geno == "G/G"
+
+summary(pop[inds,])
+```
+
+Finding median expression forA/G:
+```{r}
+indsAG <- pop$geno == "A/G"
+
+summary(pop[inds,])
+```
+
+```{r}
+indsAA <- pop$geno == "A/A"
+
+summary(pop[inds,])
+```
+
+Creating box plots!
+```{r}
+boxplot(pop ~ geno, data=expr)
+```
+
