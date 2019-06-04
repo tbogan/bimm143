@@ -115,4 +115,12 @@ Only the first one is within 1 A RMSD. This is a really good fit compared to the
 
 
 
+## Normal Mode Analysis for Flexibility prediction
+
+```{r}
+pdb2 <- read.pdb("1hel")
+modes <- nma(pdb2)
+m7 <- mktrj(modes, mode=7, file="mode_7.pdb")
+```
+
 

@@ -1,0 +1,51 @@
+---
+title: "Find a Gene Project"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+> [Q7] Generate a sequence identity based heatmap of your aligned sequences using R. 
+If necessary convert your sequence alignment to the ubiquitous FASTA format (Seaview can read in clustal format and “Save as” FASTA format for example). Read this FASTA format alignment into R with the help of functions in the Bio3D package. Calculate a sequence identity matrix (again using a function within the Bio3D package). Then generate a heatmap plot and add to your report. Do make sure your labels are visible and not cut at the figure margins.
+
+First, we'll load Bio3d
+```{r}
+library(bio3d)
+```
+
+Now, we'll import the FASTA
+```{r}
+phy <- read.fasta("FINDAGENEV3")
+```
+
+Now, we need to calculate the sequence identity matrix:
+```{r}
+seq <- seqidentity(phy)
+```
+
+```{r}
+heatmap(seq, margins = c(14,14))
+
+```
+>[Q8] Using R/Bio3D (or an online blast server if you prefer), search the main protein structure database for the most similar atomic resolution structures to your aligned sequences. 
+List the top 3 unique hits (i.e. not hits representing different chains from the same structure) along with their Evalue and sequence identity to your query. Please also add annotation details of these structures. For example include the annotation terms PDB identifier (structureId), Method used to solve the structure (experimentalTechnique), resolution (resolution), and source organism (source).
+
+HINT: You can use a single sequence from your alignment or generate a consensus sequence from your alignment using the Bio3D function consensus().  The Bio3D functions blast.pdb(), plot.blast() and pdb.annotate() are likely to be of most relevance for completing this task. Note that the results of blast.pdb() contain the hits PDB identifier (or pdb.id) as well as Evalue and identity. The results of pdb.annotate() contain the other annotation terms noted above.
+
+Note that if your consensus sequence has lots of gap positions then it will be better to use an original sequence from the alignment for your search of the PDB. In this case you could chose the sequence with the highest identity to all others in your alignment by calculating the row-wise maximum from your sequence identity matrix. 
+
+consensus("find ")
+
+Make a consensus sequence
+```{r}
+conseq <- consensus(phy)
+```
+
+
+Blast your consensus
+```{r}
+blast.pdb(conseq["seq"])
+```
+
