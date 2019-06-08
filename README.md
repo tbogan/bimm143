@@ -14,7 +14,7 @@ Included are some R markdown files that represent a portfolio of the knowledge I
 
 - Class 09: [Breast Cancer Analysis](https://github.com/tbogan/bimm143/blob/master/Class-9/Class-9_end.md)
 
--Class 10: GitHub (no .md file for this section)
+- Class 10: GitHub (no .md file for this section)
 
 - Class 11: [Structural Bioinformatics Pt. 1](https://github.com/tbogan/bimm143/blob/master/Class-11/Class-11.md)
 
@@ -24,10 +24,10 @@ Included are some R markdown files that represent a portfolio of the knowledge I
 
 - Class 14: [Transcriptomics](https://github.com/tbogan/bimm143/blob/master/Class-14/Class-14.md)
 
-- Class 15: [Class 15 Text] **ADD THIS FILE AFTER UPGRADING R**
+- Class 15: [Class 15 Text](https://github.com/tbogan/bimm143/blob/master/Class-15/Class-15.Rmd)
 
--Class 16: Unix (no .md file for this section)
+- Class 16: Unix (no .md file for this section)
 
 -Class 17: [Visualization of Biological Networks](https://github.com/tbogan/bimm143/blob/master/Class-17/class-17.md)
 
--Class 18: [Cancer Genomics] **ADD THIS FILE AFTER UPGRADING R**
+-Class 18: [Cancer Genomics](https://github.com/tbogan/bimm143/blob/master/Class-18/Class-18.Rmd)
