@@ -1,0 +1,176 @@
+---
+title: "Class 18: Cancer Genomics"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Going to move over questions that we answered previously before starting up our R portion of the course:
+
+# Part One
+
+>Q1. How many Cases (i.e. patient samples) have been found to have p53 mutations?
+
+4,008
+
+>Q2. What are the top 6 misssense mutations found in this gene?
+
+HINT: Scroll down to the ‘TP53 - Protein’ section and mouse over the displayed plot. For example R175H is found in 156 cases.
+R175H, R273C, R248Q, R273H, R248W, R282W
+
+>Q3. Which domain of the protein (as annotated by PFAM) do these mutations reside in?
+
+Sequece 175, 273, 248, 282
+
+>Q4. What are the top 6 primary sites (i.e. cancer locations such as Lung, Brain, etc.) with p53 mutations and how many primary sites have p53 mutations been found in?
+
+HINT: Clicking on the number links in the Cancer Distribution section will take you to a summary of available data accross cases, genes, and mutations for p53. Looking at the cases data will give you a ranked listing of primary sites.
+
+Uterus, ovary, Bronchus/Lungs, Pancreas, Bladder, Esophagus, Stomach
+Has been found in 44 sites
+
+
+>Q5. What is the most frequentely mutated position associated with cancer in the KRas protein (i.e. the amino acid with the most mutations)?
+
+Position 12
+
+>Q6. Are KRas mutations common in Pancreatic Adenocarcinoma (i.e. is the Pancreas a common ‘primary site’ for KRas mutations?).
+
+Yes - associated with 75% of KRas cancers
+
+>Q6. What is the ‘TGCA project’ with the most KRas mutations?
+
+PAAD
+
+>Q7. What precent of cases for this ‘TGCA project’ have KRas mutations and what precent of cases have p53 mutations?
+
+HINT: Placing your mouse over the project bar in the Cancer Distribution panel will bring up a tooltip with useful summary data.
+
+75% have KRAS, 53% have P53
+
+>Q8. How many TGCA Pancreatic Adenocarcinoma cases (i.e. patients from the TCGA-PAAD project) have RNA-Seq data available?
+
+## Exploring the Cancer Genome Atlas
+
+Install the packages we need. As a reference, we entered the following code into our console:
+
+> BiocManager::install( c("GenomicDataCommons", "TCGAbiolinks", "maftools") )
+
+```{r}
+library(GenomicDataCommons)
+
+library(TCGAbiolinks)
+
+library(maftools)
+```
+
+querying the GDC form in R
+```{r}
+cases_by_project <- cases() %>%
+  facet("project.project_id") %>%
+  aggregations()
+head(cases_by_project)
+```
+
+>Q9. Write the R code to make a barplot of the cases per project. Lets plot this data with a log scale for the y axis (log="y"), rotated axis labels (las=2) and color the bar coresponding to the TCGA-PAAD project.
+
+```{r}
+x <- cases_by_project$project.project_id
+
+colvec <- rep("lightblue", nrow(x))
+
+colvec[x$key == "TCGA-PAAD"] <- "red"
+
+barplot(x$doc_count, names.arg=x$key, log="y", col=colvec, las=2)
+```
+
+### Part 3: Immunotherapy - Designing a vaccine
+
+> Q1: Identify sequence regions that contain all 9-mer peptides that are only found in the tumor. Hint: You will need to first identify the sites of mutation in the above sequences and then extract the surrounding subsequence region. This subsequence should encompass all possible 9-mers in the tumor derived sequence. In other words extract the subsequence from 8 residues before and 8 residues after all point mutations in the tumor sequence.
+
+So our first task would be to do some steps to deduce the precise sites where there is a mismtatch and filter out gap sites (ie all those "mismatches" the computer will pick up at the very end of the fasta file)
+
+```{r}
+##Import our data file
+
+library(bio3d)
+
+tum <- read.fasta("lecture18_sequences.fa")
+
+tum
+```
+
+```{r}
+conserved <- conserv(tum, method="identity")
+
+mismatch <- which(conserved < 1)
+
+gaps <- gap.inspect(tum)$t.inds
+
+mutations <- mismatch[ !mismatch %in% gaps ]
+
+mutations
+```
+
+Now that we've done this, we would want to extract the 9-mer sequences. So we would want to extract sequences that are 8 before the mutations and 8 after the mutation, including the mutation. This should encompass all 9 AA sequences that are possible to include these mutations.
+
+For instance - in the first mutation (at site 41), we would want to go from 33-49. 
+
+For the other ranges, we would be interested in 57-63, 205-221, 251-267.
+
+We'll create code to extract these areas of interet, and we will name them based on the mutation (i.e. the name of the first one comes from the mutation from Aspartate to Lysine at position 41, i.e. D41L)
+
+```{r}
+startpositions <- mutations - 8
+
+endpositions <- mutations + 8
+
+#Mutation 1 - NOTE: THE 2 HERE INDICATES WE ARE PULLING INFO FROM THE SECOND SEQUENCE, I.E. THE CANCER ONE.
+
+
+D41L <- tum$ali[2, startpositions[1] : endpositions[1] ]
+
+#Mutation 2
+R65W <- tum$ali[2, startpositions[2] : endpositions[2] ]
+
+#Mutation 3 
+R213V <- tum$ali[2, startpositions[3] : endpositions[3] ]
+
+#Mutation 4
+D259V <- tum$ali[2, startpositions[4] : endpositions[4] ]
+
+
+```
+
+We're going to need to make a combined FASTA file with all of these sequences as the IEDB website will not allow us to upload multiple FASTA files.
+
+```{r}
+mutated_seqs <- matrix("-", nrow=4, ncol = 17)
+
+mutated_seqs_names <- c("D41L", "R59W", "R213V", "D259V")
+
+rownames(mutated_seqs) <- mutated_seqs_names
+
+##Now, we will use a function called a Loop Over to get what we need entered into the rows
+
+mutated_seqs[1,] <- D41L
+
+mutated_seqs[2,] <- R65W 
+
+mutated_seqs[3,] <- R213V
+
+mutated_seqs[4,] <- D259V
+
+mutated_seqs
+```
+
+
+Now, let's write some FASTA files so that we can upload this into the MHC analysis tool on the IEDB website. This will let us know if there are any potential ways to trigger an individuals own MHC molecules, and thus, identify any potential vaccine targets.
+
+```{r}
+write.fasta(alignment=tum, mutated_seqs, ids=mutated_seqs_names, file="P53subsequences.fa")
+
+```
+
