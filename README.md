@@ -28,6 +28,6 @@ Included are some R markdown files that represent a portfolio of the knowledge I
 
 - Class 16: Unix (no .md file for this section)
 
--Class 17: [Visualization of Biological Networks](https://github.com/tbogan/bimm143/blob/master/Class-17/class-17.md)
+- Class 17: [Visualization of Biological Networks](https://github.com/tbogan/bimm143/blob/master/Class-17/class-17.md)
 
--Class 18: [Cancer Genomics](https://github.com/tbogan/bimm143/blob/master/Class-18/Class-18.Rmd)
+- Class 18: [Cancer Genomics](https://github.com/tbogan/bimm143/blob/master/Class-18/Class-18.Rmd)
